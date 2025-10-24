@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MovieStreaming-Jagjeet Singh</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #0f0f0f;
+            color: #f1f1f1;
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1a1a; }
+        ::-webkit-scrollbar-thumb { background: #4d4d4d; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b6b6b; }
+        
+        .media-card img { transition: transform 0.3s ease-in-out; }
+        .media-card:hover img { transform: scale(1.05); }
+
+        .recommendation-card { transition: background-color 0.2s ease-in-out; }
+        .recommendation-card:hover { background-color: #2d3748; } 
+
+        #genre-list { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+
+        /* Responsive video container */
+        .video-container { 
+            position: relative; 
+            width: 100%; 
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+        }
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Updated active button style to use a border */
+        .btn-active { 
+            border-color: #e53e3e !important; 
+            background-color: #2d3748 !important; 
+            color: white !important;
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Mobile Off-Canvas Sidebar */
+        @media (max-width: 1023px) {
+            #sidebar {
+                transform: translateX(-100%);
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 50;
+                transition: transform 0.3s ease-in-out;
+            }
+            #sidebar.open {
+                transform: translateX(0);
+            }
+            #overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.6);
+                z-index: 45;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.3s ease-in-out;
+            }
+            #overlay.active {
+                opacity: 1;
+                pointer-events: auto;
+            }
+        }
+        
+        @media (min-width: 1024px) {
+            #sidebar {
+                /* Add transition for the desktop slide-in/out */
+                transition: margin-left 0.3s ease-in-out;
+            }
+            #sidebar.desktop-collapsed {
+                /* w-64 is 16rem (256px). We hide it by moving it left. */
+                /* The main content (flex-1) will auto-expand. */
+                margin-left: -16rem; 
+            }
+        }
+        
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #e53e3e;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+        <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-21Z3TZKH1T"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-21Z3TZKH1T');
+</script>
+<body class="text-white">
+    <div id="overlay"></div>
+    <div id="app" class="flex flex-col h-screen">
+        <header class="bg-[#141414] flex items-center justify-between px-2 sm:px-4 py-2 sticky top-0 z-40 border-b border-gray-800">
+            <div class="flex items-center space-x-2 sm:space-x-4">
+                <button id="menu-button" class="p-2 rounded-full hover:bg-gray-700 focus:outline-none"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg></button>
+                <div class="flex items-center space-x-2 cursor-pointer" id="home-logo-button"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-600" fill="currentColor" viewBox="0 0 24 24"><path d="M20 3H4c-1.11 0-2 .89-2 2v12c0 1.1.89 2 2 2h4v2h8v-2h4c1.1 0 2-.9 2-2V5c0-1.11-.9-2-2-2zm0 14H4V5h16v12z"/><path d="M0 0h24v24H0z" fill="none"/></svg><span class="text-xl font-semibold tracking-tighter hidden sm:block">MovieStreaming</span></div>
+            </div>
+            <div class="flex-1 flex justify-center px-2 sm:px-4">
+                <div class="w-full max-w-2xl flex items-center">
+                    <input type="text" id="search-input" placeholder="Search..." class="w-full text-sm sm:text-base bg-[#1f1f1f] border border-gray-700 rounded-full px-4 py-1.5 sm:py-2 focus:outline-none focus:border-red-500 transition-all">
+                </div>
+            </div>
+            <div class="flex items-center">
+                <button id="premier-button" class="bg-red-600 hover:bg-red-700 text-white font-semibold text-xs sm:text-sm py-1.5 px-3 sm:py-2 sm:px-4 rounded-lg whitespace-nowrap transition-colors">
+                    4K Premier
+                </button>
+            </div>
+        </header>
+        
+        <div class="flex flex-1 overflow-hidden">
+            <aside id="sidebar" class="w-64 bg-[#141414] overflow-y-auto flex-shrink-0 transition-all duration-300 flex flex-col lg:relative lg:translate-x-0">
+                <nav class="p-2">
+                    <p class="px-3 py-2 text-xs font-semibold text-gray-500 tracking-wider uppercase">Movies</p>
+                    <a href="#" class="flex items-center p-3 rounded-lg bg-gray-800 category-link" data-category="popular" data-type="movie"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg><span class="font-medium">Home</span></a>
+                    <a href="#" class="flex items-center p-3 mt-1 rounded-lg hover:bg-gray-800 category-link" data-category="top_rated" data-type="movie"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg><span class="font-medium">Top Rated</span></a>
+                    <a href="#" class="flex items-center p-3 mt-1 rounded-lg hover:bg-gray-800 category-link" data-category="upcoming" data-type="movie"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg><span class="font-medium">Upcoming</span></a>
+                
+                    <p class="px-3 py-2 mt-4 text-xs font-semibold text-gray-500 tracking-wider uppercase">TV Series</p>
+                    <a href="#" class="flex items-center p-3 mt-1 rounded-lg hover:bg-gray-800 category-link" data-category="popular" data-type="tv"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg><span class="font-medium">Popular Shows</span></a>
+                    <a href="#" class="flex items-center p-3 mt-1 rounded-lg hover:bg-gray-800 category-link" data-category="top_rated" data-type="tv"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg><span class="font-medium">Top Rated Shows</span></a>
+                    <a href="#" class="flex items-center p-3 mt-1 rounded-lg hover:bg-gray-800 category-link" data-category="airing_today" data-type="tv"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><span class="font-medium">Airing Today</span></a>
+                </nav>
+                <div class="p-2 mt-2 border-t border-gray-800">
+                    <button id="genre-dropdown-btn" class="flex items-center justify-between w-full p-3 rounded-lg hover:bg-gray-800 focus:outline-none">
+                        <div class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A2 2 0 013 8v5c0 1.1.9 2 2 2h.5a.5.5 0 00.5-.5V8.5a.5.5 0 00-.5-.5H5a2 2 0 01-2-2V5c0-1.1.9-2 2-2z"></path></svg>
+                            <span class="font-medium">Genres</span>
+                        </div>
+                        <svg id="genre-arrow" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    <div id="genre-list" class="pl-4 mt-1"></div>
+                </div>
+            </aside>
+            
+            <main id="main-content" class="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 overflow-y-auto bg-[#0f0f0f]">
+                <h2 id="page-title" class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 md:mb-6 text-gray-300 px-1">Popular Movies</h2>
+                <div id="media-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4 lg:gap-5"></div>
+                <div id="infinite-loader" class="col-span-full h-24 flex items-center justify-center" style="display: none;"><div class="loader"></div></div>
+            </main>
+
+            <div id="watch-page" style="display: none;" class="flex-1 overflow-y-auto bg-[#0f0f0f]">
+                <div class="w-full lg:flex lg:space-x-6 xl:space-x-8 p-2 sm:p-4 lg:p-6">
+                    <div class="w-full lg:w-2/3">
+                        <div class="video-container bg-black rounded-lg lg:rounded-xl overflow-hidden shadow-2xl mb-3 sm:mb-4">
+                            <iframe id="watch-iframe" frameborder="0" allowfullscreen></iframe>
+                        </div>
+                        <div id="tv-season-selector" class="mb-3 sm:mb-4" style="display: none;"></div>
+                        <div id="media-details" class="py-2 sm:py-4 text-gray-300"></div>
+                    </div>
+                    <div class="w-full lg:w-1/3 mt-4 lg:mt-0">
+                        <h3 id="recommendation-title" class="text-base sm:text-lg lg:text-xl font-bold mb-3 sm:mb-4 text-gray-300">You may also like</h3>
+                        <div id="recommendations-grid" class="space-y-2 max-h-[60vh] lg:max-h-[75vh] overflow-y-auto"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+<script src="../streaming.js"></script>
+</html>
+
+
+
